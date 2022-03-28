@@ -6,68 +6,16 @@
     android:orientation="vertical"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+    <Button
+        android:id="@+id/btnAddNew"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add New"/>
 
-    <TextView
+    <ListView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:layout_gravity="center_horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="16dp"
-        android:text="SQlite Demo" />
+        android:id="@+id/lvSinhVien"/>
     
-    <EditText
-        android:id="@+id/edName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Name:"
-        android:layout_margin="16dp" />
-
-
-    <EditText
-        android:id="@+id/edEmail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Email:"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"/>
-
-    <EditText
-        android:id="@+id/edContact"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Contact:"
-        android:layout_margin="16dp" />
-
-    <EditText
-        android:id="@+id/edAddress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Address:"
-        android:layout_margin="16dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:gravity="center"
-        android:layout_height="wrap_content">
-
-        <Button
-            android:layout_width="wrap_content"
-            android:id="@+id/btnAdd"
-            android:text="Add"
-            android:textAllCaps="false"
-            android:layout_height="wrap_content"/>
-
-        <Button
-            android:layout_marginStart="8dp"
-            android:layout_width="wrap_content"
-            android:id="@+id/btnView"
-            android:text="View"
-            android:textAllCaps="false"
-            android:layout_height="wrap_content"/>
-
-
-    </LinearLayout>
 
 </LinearLayout>
