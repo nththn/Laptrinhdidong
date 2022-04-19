@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
     MyAdapter adapter;
     public static ArrayList<Employee> employeeArrayList = new ArrayList<>();
 //    String url = "http://192.168.1.9/demoandroid/retrieve.php";
-    String url = "http://192.168.43.233/demoandroid/retrieve.php";
+    String url = "http://192.168.1.11/demoandroid/retrieve.php";
     Employee employee;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private void deleteData(final String id) {
 
 //        StringRequest request = new StringRequest(Request.Method.POST, "http://192.168.1.9/demoandroid//delete.php",
-                StringRequest request = new StringRequest(Request.Method.POST, "http://192.168.43.233/demoandroid/delete.php",
+                StringRequest request = new StringRequest(Request.Method.POST, "http://192.168.1.11/demoandroid/delete.php",
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {

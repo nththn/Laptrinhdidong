@@ -66,7 +66,7 @@ public class Edit_Activity extends AppCompatActivity {
         progressDialog.setMessage("Updating....");
         progressDialog.show();
 
-        StringRequest request = new StringRequest(Request.Method.POST, "http://192.168.43.233/demoandroid//update.php",
+        StringRequest request = new StringRequest(Request.Method.POST, "http://192.168.1.11/demoandroid//update.php",
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
