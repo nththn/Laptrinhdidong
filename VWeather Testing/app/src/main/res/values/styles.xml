@@ -7,7 +7,7 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name ="fontFamily">@string/sans_serif_medium</item>
-
+        <item name="android:windowActionBarOverlay">true</item>
     </style>
     <style name="NavigationTheme" parent="AppTheme">
         <item name="listPreferredItemHeightSmall">900dp</item><!-- menu item height- vary as u need -->

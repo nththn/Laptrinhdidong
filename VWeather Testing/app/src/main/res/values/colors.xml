@@ -6,4 +6,6 @@
     <color name="clear">#00000000</color>
     <color name="timetextcolor">#FFF</color>
     <color name="suncolor">#FFFB00</color>
+    <color name="darkbackgroundcolor">#99000000</color>
+    <color name="whitecolor">#dfdfdf</color>
 </resources>

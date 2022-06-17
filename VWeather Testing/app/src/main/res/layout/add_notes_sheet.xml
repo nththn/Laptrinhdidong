@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/add_notes_sheet"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/layout_note"
+    app:behavior_hideable="true"
+    app:behavior_peekHeight="0dp"
+    >
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_height="match_parent">
+    <LinearLayout
+        android:id="@+id/linearLayout10"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        tools:ignore="MissingConstraints">
+
+        <ImageButton
+            android:id="@+id/note_exit2"
+            android:layout_marginLeft="10dp"
+            android:background="@drawable/back_down"
+            android:layout_width="30dp"
+            android:layout_height="30dp"/>
+        <TextView
+
+            android:textSize="20sp"
+            android:textColor="#dfdfdf"
+            android:gravity="center"
+            android:layout_width="330dp"
+            android:layout_height="30dp"/>
+        <ImageButton
+            android:id="@+id/note_add2"
+            android:background="@drawable/tick"
+            android:layout_width="30dp"
+            android:layout_height="30dp"/>
+    </LinearLayout>
+    <TextView
+        android:id="@+id/note_id2"
+        android:layout_width="match_parent"
+        android:visibility="invisible"
+        android:layout_height="20dp"
+
+        />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+
+        >
+        <EditText
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:textColor="#dfdfdf"
+            android:background="@drawable/layout_note_item"
+            android:layout_height="50dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginLeft="10dp"
+            android:hint="Title"
+            android:textColorHint="#121212"
+
+            android:layout_marginRight="10dp"
+            android:layout_marginBottom="10dp"/>
+
+        <EditText
+            android:id="@+id/content"
+            android:gravity="top|left"
+            android:layout_width="match_parent"
+            android:textColor="#dfdfdf"
+            android:background="@null"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_height="match_parent"
+            android:inputType="textMultiLine" />
+    </LinearLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorLayout>

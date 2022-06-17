@@ -1,24 +1,37 @@
 package com.example.viewpager2
 
-import android.R.attr.y
+import android.annotation.SuppressLint
+import android.app.UiModeManager.MODE_NIGHT_NO
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Color
-import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Menu
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+import androidx.appcompat.widget.SwitchCompat
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.navigation.NavigationView
-import jp.wasabeef.blurry.Blurry
+import com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorBehavior
+import com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorLayout
+import com.sothree.slidinguppanel.SlidingUpPanelLayout
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.card_item_note.*
+import kotlinx.android.synthetic.main.card_items_city.*
+import kotlinx.android.synthetic.main.layout_bottom_sheet.*
 import org.json.JSONObject
 import java.math.RoundingMode
 import java.net.URL
@@ -80,26 +93,54 @@ class MainActivity : AppCompatActivity() {
     var time18: String = ""
 
 
+
     private lateinit var edName: EditText
+    private lateinit var switch: SwitchCompat
+
+    private lateinit var location_title: TextView
 
     private lateinit var btnAdd: ImageButton
+    private lateinit var btnDelete: ImageButton
+
+    private lateinit var note: TextView
+    private lateinit var note_id: TextView
+    private lateinit var note_add: ImageButton
+    private lateinit var note_exit: ImageButton
+    private lateinit var note_exit2: ImageButton
+    private lateinit var note_add2: ImageButton
+    private lateinit var note_id2: TextView
+    private lateinit var note_title: TextView
+    private lateinit var note_content: TextView
+    private lateinit var note_remove: ImageButton
+    lateinit var title : EditText
+    lateinit var content: EditText
 
     lateinit var navigationView: NavigationView
     lateinit var viewpager: ViewPager2
     private lateinit var sqLiteHelper: SQLiteHelper
     private lateinit var recyclerViewCity: RecyclerView
     private lateinit var recyclerViewWeather: RecyclerView
+    private lateinit var recyclerViewNote: RecyclerView
+    lateinit var weatherview: ConstraintLayout
+    lateinit var weatherviewpager: ConstraintLayout
+
 
 
     private var adapterCity: CityAdapter? = null
+    private var adapterNote: NoteAdapter? = null
     private var city: City? = null
     lateinit var weatherList: ArrayList<Weather>
     lateinit var scrollView : ScrollView
     lateinit var weather_view_pager: ConstraintLayout
     lateinit var context: Context
-
+    lateinit var drawerLayout: DrawerLayout
     lateinit var cityList: ArrayList<City>
+    lateinit var noteList: ArrayList<Note>
+    lateinit var slidingUpPanelLayout: SlidingUpPanelLayout
 
+    lateinit var addnotesSheet: BottomSheetCoordinatorLayout
+    lateinit var bottomSheetCoordinatorLayout: BottomSheetCoordinatorLayout
+    lateinit var bottomSheetBehavior: BottomSheetCoordinatorBehavior
 
     //lateinit var cityList: ArrayList<City>
     lateinit var ciTy: String
@@ -107,6 +148,7 @@ class MainActivity : AppCompatActivity() {
 
     var wrongCity: Boolean = false
 
+    @SuppressLint("WrongConstant")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -119,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         //val images = listOf(R.drawable.i1580541, R.drawable.somewhere, R.drawable.i2988507)
         // var cityList: ArrayList<City> = sqLiteHelper.getAllCity()
         var cityList: ArrayList<City>
-
+        noteList = sqLiteHelper.getAllNote()
         cityList = sqLiteHelper.getAllCity()
         println("City size" + cityList.size)
 
@@ -134,29 +176,35 @@ class MainActivity : AppCompatActivity() {
             getWeather(cityList)
         }
 
+
+        bottomSheetCoordinatorLayout = findViewById(R.id.bottom_sheet)
+        addnotesSheet = bottomSheetCoordinatorLayout.findViewById(R.id.add_notes_sheet)
         //weatherList.add(weatherr)
 
         //println(weatherList.size)
 
 
 
-
-
-
-
-
-
-
-
-
+        note_remove = bottomSheetCoordinatorLayout.findViewById(R.id.note_remove)
+        title = addnotesSheet.findViewById(R.id.title)
+        content = addnotesSheet.findViewById(R.id.content)
+        note_id2 = addnotesSheet.findViewById(R.id.note_id2)
 
 
 
         initViewCity()
         initRecyclerViewCity()
+        initViewNote()
+        initRecyclerViewNote()
 
+        getNote()
 
        // getCities()
+
+
+
+
+
 
         btnAdd.setOnClickListener() {
             addCity()
@@ -173,10 +221,236 @@ class MainActivity : AppCompatActivity() {
 
             city = it
         }
+
+        content = addnotesSheet.findViewById(R.id.content)
+
+        adapterNote?.setOnClickItem {
+            val bottomSheetBehaviorr = BottomSheetBehavior.from(addnotesSheet)
+            if(bottomSheetBehaviorr.state != BottomSheetCoordinatorBehavior.STATE_EXPANDED){
+                bottomSheetBehaviorr.state = BottomSheetCoordinatorBehavior.STATE_EXPANDED
+                title.setText(it.title)
+                content.setText(it.content)
+                note_id2.setText(it.id)
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+            }
+
+        }
+
         adapterCity?.setOnClickDeleteitem {
             deleteCity(it.name)
 
         }
+        adapterNote?.setOnClickDeleteitem {
+            deleteNote(it.id)
+        }
+
+
+        note_exit = bottomSheetCoordinatorLayout.findViewById(R.id.note_exit)
+        note_exit.setOnClickListener(){
+            val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetCoordinatorLayout)
+            bottomSheetBehavior.state = BottomSheetCoordinatorBehavior.STATE_COLLAPSED
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            if (imm.isAcceptingText()) {
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+            }
+        }
+        note_add = bottomSheetCoordinatorLayout.findViewById(R.id.note_add)
+        note_add.setOnClickListener(){
+            val bottomSheetBehaviorr = BottomSheetBehavior.from(addnotesSheet)
+            bottomSheetBehaviorr.state = BottomSheetCoordinatorBehavior.STATE_EXPANDED
+
+
+
+        }
+        note_add2 = addnotesSheet.findViewById(R.id.note_add2)
+
+        note_add2.setOnClickListener(){
+            if(note_id2.text.toString()==""){
+                var title = title.text.toString()
+                var content = content.text.toString()
+
+                val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
+                val currentDate = sdf.format(Date())
+
+                if(title=="" && content==""){
+                    return@setOnClickListener
+                }
+                if(title==""){
+                    title="(No title)"
+                }
+                val note = Note(
+                    title = title,
+                    content = content,
+                    time = currentDate
+                )
+                val bottomSheetBehavior = BottomSheetBehavior.from(addnotesSheet)
+                bottomSheetBehavior.state = BottomSheetCoordinatorBehavior.STATE_COLLAPSED
+                sqLiteHelper.insertNote(note)
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                if (imm.isAcceptingText()) {
+                    imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+                }
+                getNote()
+                clearEditText()
+            }
+            else{
+                var title = title.text.toString()
+                var content = content.text.toString()
+                var id = note_id2.text.toString()
+                val sdf = SimpleDateFormat("dd/M/yyyy hh:mm:ss")
+                val currentDate = sdf.format(Date())
+
+                if(title=="" && content==""){
+                    return@setOnClickListener
+                }
+                if(title==""){
+                    title="(No title)"
+                }
+                val note = Note(
+                    id = id,
+                    title = title,
+                    content = content,
+                    time = currentDate
+                )
+                val bottomSheetBehavior = BottomSheetBehavior.from(addnotesSheet)
+                bottomSheetBehavior.state = BottomSheetCoordinatorBehavior.STATE_COLLAPSED
+                sqLiteHelper.updateNote(note)
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                if (imm.isAcceptingText()) {
+                    imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+                }
+                getNote()
+                clearEditText()
+            }
+        }
+        note_exit2 = addnotesSheet.findViewById(R.id.note_exit2)
+        note_exit2.setOnClickListener(){
+            val bottomSheetBehavior = BottomSheetBehavior.from(addnotesSheet)
+            bottomSheetBehavior.state = BottomSheetCoordinatorBehavior.STATE_COLLAPSED
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            clearEditText()
+            if (imm.isAcceptingText()) {
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+            }
+        }
+
+
+        note =  bottomSheetCoordinatorLayout.findViewById(R.id.note)
+
+
+        val sharedPreferences: SharedPreferences = getSharedPreferences("save", MODE_PRIVATE)
+        switch.isChecked = sharedPreferences.getBoolean("value",true)
+
+
+        if(switch.isChecked){
+            adapterCity?.mode = true
+            adapterCity?.change_mode()
+            location_title.setTextColor(Color.parseColor("#121212"))
+            navigationView.setBackgroundColor(Color.parseColor("#ffffff"))
+            edName.setTextColor(Color.parseColor("#121212"))
+            btnAdd.setBackgroundResource(R.drawable.add_black)
+            note_remove.setBackgroundResource(R.drawable.remove_black)
+            note_add.setBackgroundResource(R.drawable.add_note_black)
+            note_exit.setBackgroundResource(R.drawable.back_down_black)
+            bottom_sheet.setBackgroundResource(R.drawable.layout_note_light)
+            note.setTextColor(Color.parseColor("#121212"))
+            adapterNote?.mode = true
+            adapterNote?.change_mode()
+            note_add2.setBackgroundResource(R.drawable.tick_black)
+            note_exit2.setBackgroundResource(R.drawable.back_down_black)
+            addnotesSheet.setBackgroundResource(R.drawable.layout_note_light)
+            title.setBackgroundResource(R.drawable.layout_city_item_light)
+            title.elevation = 10F
+            title.setTextColor(Color.parseColor("#121212"))
+            content.setTextColor(Color.parseColor("#121212"))
+            title.setHintTextColor(Color.parseColor("#dfdfdf"))
+
+        }
+        else{
+            adapterCity?.mode = false
+            adapterCity?.change_mode()
+            location_title.setTextColor(Color.parseColor("#dfdfdf"))
+            navigationView.setBackgroundColor(Color.parseColor("#121212"))
+            edName.setTextColor(Color.parseColor("#dfdfdf"))
+            btnAdd.setBackgroundResource(R.drawable.add)
+            note_remove.setBackgroundResource(R.drawable.remove)
+            note_add.setBackgroundResource(R.drawable.add_note)
+            note_exit.setBackgroundResource(R.drawable.back_down)
+            bottom_sheet.setBackgroundResource(R.drawable.layout_note)
+            note.setTextColor(Color.parseColor("#dfdfdf"))
+            adapterNote?.mode = false
+            adapterNote?.change_mode()
+            note_add2.setBackgroundResource(R.drawable.tick)
+            note_exit2.setBackgroundResource(R.drawable.back_down)
+            addnotesSheet.setBackgroundResource(R.drawable.layout_note)
+            title.setBackgroundResource(R.drawable.layout_city_item)
+            title.setTextColor(Color.parseColor("#dfdfdf"))
+            content.setTextColor(Color.parseColor("#dfdfdf"))
+
+
+        }
+        switch.setOnClickListener(){
+            if(switch.isChecked){
+                val editor: SharedPreferences.Editor = getSharedPreferences("save", MODE_PRIVATE).edit()
+                editor.putBoolean("value",true)
+                editor.apply()
+                switch.isChecked = true
+                adapterCity?.mode = true
+                adapterCity?.change_mode()
+                location_title.setTextColor(Color.parseColor("#121212"))
+                navigationView.setBackgroundColor(Color.parseColor("#ffffff"))
+                edName.setTextColor(Color.parseColor("#121212"))
+                btnAdd.setBackgroundResource(R.drawable.add_black)
+                note_remove.setBackgroundResource(R.drawable.remove_black)
+                note_add.setBackgroundResource(R.drawable.add_note_black)
+                note_exit.setBackgroundResource(R.drawable.back_down_black)
+                bottom_sheet.setBackgroundResource(R.drawable.layout_note_light)
+                note.setTextColor(Color.parseColor("#121212"))
+                adapterNote?.mode = true
+                adapterNote?.change_mode()
+                note_add2.setBackgroundResource(R.drawable.tick_black)
+                note_exit2.setBackgroundResource(R.drawable.back_down_black)
+                addnotesSheet.setBackgroundResource(R.drawable.layout_note_light)
+                title.setBackgroundResource(R.drawable.layout_city_item_light)
+                title.elevation = 10F
+                title.setTextColor(Color.parseColor("#121212"))
+                content.setTextColor(Color.parseColor("#121212"))
+
+            }
+            else{
+                val editor: SharedPreferences.Editor = getSharedPreferences("save", MODE_PRIVATE).edit()
+                editor.putBoolean("value",false)
+                editor.apply()
+                switch.isChecked= false
+
+                adapterCity?.mode = false
+                adapterCity?.change_mode()
+                location_title.setTextColor(Color.parseColor("#dfdfdf"))
+                navigationView.setBackgroundColor(Color.parseColor("#121212"))
+                edName.setTextColor(Color.parseColor("#dfdfdf"))
+                btnAdd.setBackgroundResource(R.drawable.add)
+                note_remove.setBackgroundResource(R.drawable.remove)
+                note_add.setBackgroundResource(R.drawable.add_note)
+                note_exit.setBackgroundResource(R.drawable.back_down)
+                bottom_sheet.setBackgroundResource(R.drawable.layout_note)
+                note.setTextColor(Color.parseColor("#dfdfdf"))
+                adapterNote?.mode = false
+                adapterNote?.change_mode()
+                note_add2.setBackgroundResource(R.drawable.tick)
+                note_exit2.setBackgroundResource(R.drawable.back_down)
+                addnotesSheet.setBackgroundResource(R.drawable.layout_note)
+                title.setBackgroundResource(R.drawable.layout_city_item)
+                title.setTextColor(Color.parseColor("#dfdfdf"))
+                content.setTextColor(Color.parseColor("#dfdfdf"))
+
+            }
+        }
+
+
+
+
+
 
 
 //        scrollView.viewTreeObserver.addOnScrollChangedListener {
@@ -223,7 +497,7 @@ class MainActivity : AppCompatActivity() {
                 val id = jsonObj1.getString("id")
                 val lon = jsonObj1.getJSONObject("coord").getString("lon")
                 val lat = jsonObj1.getJSONObject("coord").getString("lat")
-                val city = City(name = cityName, id=id, lat =lat,lon=lon)
+                val city = City(name = cityName, id = id, lat = lat, lon = lon)
                 sqLiteHelper.insertCity(city)
                 addedCheck = true
                 //clearEditText()
@@ -250,6 +524,8 @@ class MainActivity : AppCompatActivity() {
             //weatherList.clear()
             //cityList= sqLiteHelper.getAllCity()
             //println(weatherList.size)
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
             clearEditText()
             cityList.clear()
             cityList = sqLiteHelper.getAllCity()
@@ -264,7 +540,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun addFirstCity() {
-        val city = City(name = "london", id= "2643743", lon ="-0.12574", lat = "51.50853")
+        val city = City(name = "london", id = "2643743", lon = "-0.12574", lat = "51.50853")
         val status = sqLiteHelper.insertCity(city)
         if (status > -1) {
             getCities()
@@ -312,9 +588,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun clearEditText() {
         edName.setText("")
-
+        title.setText("")
+        content.setText("")
         edName.requestFocus()
-
+        note_id2.setText("")
     }
 
     private fun initRecyclerViewCity() {
@@ -324,6 +601,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViewCity() {
+        drawerLayout = findViewById(R.id.drawer_layout)
         navigationView = findViewById(R.id.navigation_drawer)
         val hView = navigationView.getHeaderView(0)
         val menuNav: Menu = navigationView.getMenu()
@@ -333,8 +611,11 @@ class MainActivity : AppCompatActivity() {
 
         btnAdd = hView.findViewById(R.id.btn_add_city)
         edName = hView.findViewById(R.id.ed_add_city)
+        switch = hView.findViewById(R.id.switch_mode)
+        location_title = hView.findViewById(R.id.location_title)
         recyclerViewCity = hView.findViewById(R.id.city_recyclerView)
     }
+
     //----------------------------------------------------
 
 
@@ -387,10 +668,10 @@ class MainActivity : AppCompatActivity() {
                         "dd/MM/yyyy HH:mm ",
                         Locale.ENGLISH
                     ).format(
-                      //  Date((timeZone+updatedAt) * 1000)
-                        Date((updatedAt+timeZone-25200)*1000)
+                        //  Date((timeZone+updatedAt) * 1000)
+                        Date((updatedAt + timeZone - 25200) * 1000)
                     )
-                val currentTime = SimpleDateFormat("HH:mm",Locale.ENGLISH).format(Date((updatedAt+timeZone-25200)*1000))
+                val currentTime = SimpleDateFormat("HH:mm", Locale.ENGLISH).format(Date((updatedAt + timeZone - 25200) * 1000))
                 println(updatedAt)
 //                val lon = coord.getString("lon")
 //                val lat = coord.getString("lat")
@@ -481,80 +762,132 @@ class MainActivity : AppCompatActivity() {
 
 
                 val pop1 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(1).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(1).getDouble("pop") * 100).toString()
                 val pop2 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(2).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(2).getDouble("pop") * 100).toString()
                 val pop3 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(3).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(3).getDouble("pop") * 100).toString()
                 val pop4 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(4).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(4).getDouble("pop") * 100).toString()
 
                 val pop5 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(5).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(5).getDouble("pop") * 100).toString()
                 val pop6 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(6).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(6).getDouble("pop") * 100).toString()
                 val pop7 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(7).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(7).getDouble("pop") * 100).toString()
                 val pop8 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(8).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(8).getDouble("pop") * 100).toString()
                 val pop9 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(9).getDouble("pop")*100).toString()
+                    df.format(jsonObj2.getJSONArray("list").getJSONObject(9).getDouble("pop") * 100).toString()
                 val pop10 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(10).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(10).getDouble("pop") * 100
+                    ).toString()
                 val pop11 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(11).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(11).getDouble("pop") * 100
+                    ).toString()
                 val pop12 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(12).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(12).getDouble("pop") * 100
+                    ).toString()
                 val pop13 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(13).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(13).getDouble("pop") * 100
+                    ).toString()
                 val pop14 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(14).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(14).getDouble("pop") * 100
+                    ).toString()
                 val pop15 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(15).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(15).getDouble("pop") * 100
+                    ).toString()
                 val pop16 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(16).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(16).getDouble("pop") * 100
+                    ).toString()
                 val pop17 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(17).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(17).getDouble("pop") * 100
+                    ).toString()
                 val pop18 =
-                    df.format(jsonObj2.getJSONArray("list").getJSONObject(18).getDouble("pop")*100).toString()
+                    df.format(
+                        jsonObj2.getJSONArray("list").getJSONObject(18).getDouble("pop") * 100
+                    ).toString()
 
 
 
 
                 val icon2 =
-                    jsonObj2.getJSONArray("list").getJSONObject(2).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(2).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon3 =
-                    jsonObj2.getJSONArray("list").getJSONObject(3).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(3).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon4 =
-                    jsonObj2.getJSONArray("list").getJSONObject(4).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(4).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon5 =
-                    jsonObj2.getJSONArray("list").getJSONObject(5).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(5).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon6 =
-                    jsonObj2.getJSONArray("list").getJSONObject(6).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(6).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon7 =
-                    jsonObj2.getJSONArray("list").getJSONObject(7).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(7).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon8 =
-                    jsonObj2.getJSONArray("list").getJSONObject(8).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(8).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon9 =
-                    jsonObj2.getJSONArray("list").getJSONObject(9).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(9).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon10 =
-                    jsonObj2.getJSONArray("list").getJSONObject(10).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(10).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon11 =
-                    jsonObj2.getJSONArray("list").getJSONObject(11).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(11).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon12 =
-                    jsonObj2.getJSONArray("list").getJSONObject(12).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(12).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon13 =
-                    jsonObj2.getJSONArray("list").getJSONObject(13).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(13).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon14 =
-                    jsonObj2.getJSONArray("list").getJSONObject(14).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(14).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon15 =
-                    jsonObj2.getJSONArray("list").getJSONObject(15).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(15).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon16 =
-                    jsonObj2.getJSONArray("list").getJSONObject(16).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(16).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon17 =
-                    jsonObj2.getJSONArray("list").getJSONObject(17).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(17).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
                 val icon18 =
-                    jsonObj2.getJSONArray("list").getJSONObject(18).getJSONArray("weather").getJSONObject(0).getString("icon")
+                    jsonObj2.getJSONArray("list").getJSONObject(18).getJSONArray("weather").getJSONObject(
+                        0
+                    ).getString("icon")
 
 
 
@@ -579,24 +912,24 @@ class MainActivity : AppCompatActivity() {
 
                 val format = SimpleDateFormat("MM-dd-yyyy HH:mm")
 
-                time2 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly2+timeZone-50400) * 1000))
+                time2 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly2 + timeZone - 50400) * 1000))
 
-                time3 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly3+timeZone-50400) * 1000))
-                time4 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly4+timeZone-50400) * 1000))
-                time5 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly5+timeZone-50400) * 1000))
-                time6 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly6+timeZone-50400) * 1000))
-                time7 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly7+timeZone-50400) * 1000))
-                time8 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly8+timeZone-50400) * 1000))
-                time9 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly9+timeZone-50400) * 1000))
-                time10 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly10+timeZone-50400) * 1000))
-                time11 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly11+timeZone-50400) * 1000))
-                time12 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly12+timeZone-50400) * 1000))
-                time13 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly13+timeZone-50400) * 1000))
-                time14 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly14+timeZone-50400) * 1000))
-                time15 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly15+timeZone-50400) * 1000))
-                time16 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly16+timeZone-50400) * 1000))
-                time17 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly17+timeZone-50400) * 1000))
-                time18 = SimpleDateFormat("HH:mm ",Locale.ENGLISH).format(Date((time_hourly18+timeZone-50400) * 1000))
+                time3 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly3 + timeZone - 50400) * 1000))
+                time4 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly4 + timeZone - 50400) * 1000))
+                time5 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly5 + timeZone - 50400) * 1000))
+                time6 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly6 + timeZone - 50400) * 1000))
+                time7 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly7 + timeZone - 50400) * 1000))
+                time8 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly8 + timeZone - 50400) * 1000))
+                time9 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly9 + timeZone - 50400) * 1000))
+                time10 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly10 + timeZone - 50400) * 1000))
+                time11 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly11 + timeZone - 50400) * 1000))
+                time12 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly12 + timeZone - 50400) * 1000))
+                time13 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly13 + timeZone - 50400) * 1000))
+                time14 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly14 + timeZone - 50400) * 1000))
+                time15 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly15 + timeZone - 50400) * 1000))
+                time16 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly16 + timeZone - 50400) * 1000))
+                time17 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly17 + timeZone - 50400) * 1000))
+                time18 = SimpleDateFormat("HH:mm ", Locale.ENGLISH).format(Date((time_hourly18 + timeZone - 50400) * 1000))
 
                 image = cityList[i].id
 
@@ -610,8 +943,20 @@ class MainActivity : AppCompatActivity() {
                 val TodayTemp =   jsonObj3.getJSONArray("list").getJSONObject(0).getJSONObject("temp")
                 val maxTempToday = df.format(TodayTemp.getString("max").toDouble())+"°"
                 val minTempToday = df.format(TodayTemp.getString("min").toDouble())+"°"
-                val sunrise = SimpleDateFormat("HH:mm",Locale.ENGLISH).format(Date(((jsonObj3.getJSONArray("list").getJSONObject(0).getLong("sunrise"))+timeZone-25200) * 1000))
-                val sunset = SimpleDateFormat("HH:mm",Locale.ENGLISH).format(Date(((jsonObj3.getJSONArray("list").getJSONObject(0).getLong("sunset"))+timeZone-25200) * 1000))
+                val sunrise = SimpleDateFormat("HH:mm", Locale.ENGLISH).format(
+                    Date(
+                        ((jsonObj3.getJSONArray(
+                            "list"
+                        ).getJSONObject(0).getLong("sunrise")) + timeZone - 25200) * 1000
+                    )
+                )
+                val sunset = SimpleDateFormat("HH:mm", Locale.ENGLISH).format(
+                    Date(
+                        ((jsonObj3.getJSONArray(
+                            "list"
+                        ).getJSONObject(0).getLong("sunset")) + timeZone - 25200) * 1000
+                    )
+                )
 //                val maxTempToday = "123"
 //                val minTempToday = "456"
 
@@ -624,56 +969,212 @@ class MainActivity : AppCompatActivity() {
                     )
                 val jsonObj4 = JSONObject(response4)
 
-                val daily_icon1 = jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon2 = jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon3 = jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon4 = jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon5 = jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon6 = jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon7 = jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONArray("weather").getJSONObject(0).getString("icon")
-                val daily_icon8 = jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONArray("weather").getJSONObject(0).getString("icon")
+                val daily_icon1 = jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon2 = jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon3 = jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon4 = jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon5 = jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon6 = jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon7 = jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
+                val daily_icon8 = jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONArray("weather").getJSONObject(
+                    0
+                ).getString("icon")
 
                 val daily_day1 = "Today"
-                val daily_day2 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(1).getLong("dt")+timeZone-25000)*1000))
-                val daily_day3 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(2).getLong("dt")+timeZone-25000)*1000))
-                val daily_day4 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(3).getLong("dt")+timeZone-25000)*1000))
-                val daily_day5 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(4).getLong("dt")+timeZone-25000)*1000))
-                val daily_day6 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(5).getLong("dt")+timeZone-25000)*1000))
-                val daily_day7 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(6).getLong("dt")+timeZone-25000)*1000))
-                val daily_day8 = SimpleDateFormat("EEEE",Locale.ENGLISH).format(Date((jsonObj4.getJSONArray("daily").getJSONObject(7).getLong("dt")+timeZone-25000)*1000))
+                val daily_day2 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(1).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day3 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(2).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day4 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(3).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day5 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(4).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day6 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(5).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day7 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(6).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
+                val daily_day8 = SimpleDateFormat("EEEE", Locale.ENGLISH).format(
+                    Date(
+                        (jsonObj4.getJSONArray(
+                            "daily"
+                        ).getJSONObject(7).getLong("dt") + timeZone - 25000) * 1000
+                    )
+                )
 
-                val daily_pop1 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(0).getDouble("pop")*100).toString()
-                val daily_pop2 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(1).getDouble("pop")*100).toString()
-                val daily_pop3 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(2).getDouble("pop")*100).toString()
-                val daily_pop4 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(3).getDouble("pop")*100).toString()
-                val daily_pop5 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(4).getDouble("pop")*100).toString()
-                val daily_pop6 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(5).getDouble("pop")*100).toString()
-                val daily_pop7 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(6).getDouble("pop")*100).toString()
-                val daily_pop8 = df.format(jsonObj4.getJSONArray("daily").getJSONObject(7).getDouble("pop")*100).toString()
+                val daily_pop1 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(0).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop2 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(1).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop3 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(2).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop4 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(3).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop5 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(4).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop6 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(5).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop7 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(6).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
+                val daily_pop8 = df.format(
+                    jsonObj4.getJSONArray("daily").getJSONObject(7).getDouble(
+                        "pop"
+                    ) * 100
+                ).toString()
 
-                val daily_mintemp1 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp2 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp3 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp4 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp5 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp6 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp7 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONObject("temp").getString("min")).toDouble())+"°"
-                val daily_mintemp8 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONObject("temp").getString("min")).toDouble())+"°"
+                val daily_mintemp1 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp2 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp3 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp4 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp5 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp6 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp7 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
+                val daily_mintemp8 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONObject(
+                        "temp"
+                    ).getString("min")).toDouble()
+                )+"°"
 
-                val daily_maxtemp1 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp2 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp3 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp4 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp5 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp6 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp7 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONObject("temp").getString("max")).toDouble())+"°"
-                val daily_maxtemp8 = df.format((jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONObject("temp").getString("max")).toDouble())+"°"
+                val daily_maxtemp1 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(0).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp2 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(1).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp3 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(2).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp4 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(3).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp5 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(4).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp6 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(5).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp7 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(6).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
+                val daily_maxtemp8 = df.format(
+                    (jsonObj4.getJSONArray("daily").getJSONObject(7).getJSONObject(
+                        "temp"
+                    ).getString("max")).toDouble()
+                )+"°"
 
                 var alerts: String
                 var alerts_description: String
                 try {
                     alerts = jsonObj4.getJSONArray("alerts").getJSONObject(0).getString("event")
-                    alerts_description = jsonObj4.getJSONArray("alerts").getJSONObject(0).getString("description")
+                    alerts_description = jsonObj4.getJSONArray("alerts").getJSONObject(0).getString(
+                        "description"
+                    )
                 }
                 catch (e: java.lang.Exception){
                     alerts = "Nothing"
@@ -749,8 +1250,8 @@ class MainActivity : AppCompatActivity() {
                     icon9 = icon9,
                     icon10 = icon10,
                     icon11 = icon11,
-                    icon12  = icon12,
-                    icon13  = icon13,
+                    icon12 = icon12,
+                    icon13 = icon13,
                     icon14 = icon14,
                     icon15 = icon15,
                     icon16 = icon16,
@@ -819,7 +1320,12 @@ class MainActivity : AppCompatActivity() {
             handler.post {
                 getCities()
                 context.applicationContext
-                val adapterWeather = WeatherAdapter(weatherList, context)
+                val adapterWeather = WeatherAdapter(
+                    weatherList,
+                    context,
+                    drawerLayout,
+                    bottomSheetCoordinatorLayout
+                )
                 viewPager.adapter = adapterWeather
                 println(weatherList.size)
 
@@ -842,6 +1348,66 @@ class MainActivity : AppCompatActivity() {
         temp = pattern.matcher(temp).replaceAll("")
         return temp.replace("đ".toRegex(), "d")
     }
+
+
+
+
+
+
+
+
+
+
+
+    private fun addNote(title: String, content: String, time: String) {
+        val note = Note(title = title, content = content, time = time)
+        val status = sqLiteHelper.insertNote(note)
+        if (status > -1) {
+            getNote()
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+        fun getNote() {
+            val noteList = sqLiteHelper.getAllNote()
+            Log.e("pppp", "${noteList.size}")
+            adapterNote?.addItems(noteList)
+        }
+
+
+     fun deleteNote(id: String) {
+        val builder = AlertDialog.Builder(this)
+        val noteList = sqLiteHelper.getAllNote()
+        if (id == null) return
+
+
+        builder.setMessage("Are you sure you want to delete this note?")
+        builder.setCancelable(true)
+        builder.setPositiveButton("Yes") { dialog, _ ->
+            sqLiteHelper.deleteNote(id)
+            getNote()
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("No") { dialog, _ ->
+            dialog.dismiss()
+        }
+        val alert = builder.create()
+        alert.show()
+    }
+
+        fun initRecyclerViewNote() {
+            recyclerViewNote.layoutManager = LinearLayoutManager(this)
+            adapterNote = NoteAdapter(note_remove)
+            recyclerViewNote.adapter = adapterNote
+        }
+
+        fun initViewNote() {
+
+            note_add = findViewById(R.id.note_add)
+            //btnUpdate = findViewById(R.id.btnUpdate)
+            recyclerViewNote = findViewById(R.id.note_recyclerview)
+
+        }
 
 
 }

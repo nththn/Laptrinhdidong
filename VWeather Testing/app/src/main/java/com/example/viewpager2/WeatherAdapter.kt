@@ -5,23 +5,33 @@ import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.ImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.github.ahmadnemati.wind.enums.TrendType
 import com.github.matteobattilana.weather.PrecipType
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorBehavior
+import com.otaliastudios.bottomsheetcoordinatorlayout.BottomSheetCoordinatorLayout
 import kotlinx.android.synthetic.main.activity_main.view.*
 import kotlinx.android.synthetic.main.item_view_pager.view.*
 import java.text.DecimalFormat
 import java.util.*
 
 
-class WeatherAdapter(var weatherList: ArrayList<Weather>, context: Context) : RecyclerView.Adapter<WeatherAdapter.WeatherViewHolder>(){
+class WeatherAdapter(
+    var weatherList: ArrayList<Weather>,
+    context: Context,
+    var drawerLayout: DrawerLayout,
+    var bottomSheetCoordinatorLayout: BottomSheetCoordinatorLayout
+) : RecyclerView.Adapter<WeatherAdapter.WeatherViewHolder>(){
     var context: Context = context
     inner class WeatherViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
 //        private var cityName = itemView.findViewById<TextView>(R.id.city_name_text)
 //        private var weatherViewPager = itemView.findViewById<ConstraintLayout>(R.id.weather_view_pager)
-
+            var btnMenu = itemView.findViewById<ImageButton>(R.id.menu_button)
 //        fun bindView(weather: Weather) {
 //
 //            cityName.text = weather.cityName
@@ -54,6 +64,21 @@ class WeatherAdapter(var weatherList: ArrayList<Weather>, context: Context) : Re
 
         //holder.itemView.main_image.setBackgroundResource(curImage)
        else{
+
+           holder.btnMenu.setOnClickListener(){
+                drawerLayout.openDrawer(GravityCompat.START)
+
+           }
+            val metrics = context.resources.displayMetrics
+            val width = metrics.widthPixels
+            val height = metrics.heightPixels
+
+            val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetCoordinatorLayout)
+            bottomSheetBehavior.maxHeight = height-60
+            holder.itemView.note_button.setOnClickListener(){
+                    bottomSheetBehavior.state = BottomSheetCoordinatorBehavior.STATE_EXPANDED
+            }
+
 
 
             holder.itemView.city_name_text.text = weather.cityName
@@ -292,8 +317,8 @@ class WeatherAdapter(var weatherList: ArrayList<Weather>, context: Context) : Re
             holder.itemView.sunView.setEndTime(weather.sunset)
             holder.itemView.sunView.setCurrentTime(weather.currentTime)
 
-            val df = DecimalFormat("#.##",)
-            var windspeed = df.format(weather.wind_speed.toDouble()*3.6)
+            val df = DecimalFormat("#.##")
+            var windspeed = df.format(weather.wind_speed.toDouble() * 3.6)
             var wind_speed = windspeed.toString().replace(",", ".")
             //holder.itemView.windview.setPressure(20F)
             //holder.itemView.windview.setPressureUnit("in hPa")

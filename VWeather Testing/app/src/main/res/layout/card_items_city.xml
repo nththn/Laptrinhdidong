@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
+    android:id="@+id/item_city_linearLayout"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="280dp"
+    android:layout_width="270dp"
     android:layout_height="40dp"
-    android:layout_marginBottom="4dp"
-    android:layout_marginLeft="10dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginBottom="10dp"
+    android:layout_marginLeft="30dp"
+    android:background="@drawable/layout_city_item"
     android:layout_weight="1">
-
 
 
 
@@ -23,7 +25,7 @@
 
             android:layout_gravity="center"
             android:layout_width="220dp"
-            android:textColor="#FFF"
+            android:textColor="#dfdfdf"
             android:textSize="20dp"
             android:layout_height="30dp"/>
 
